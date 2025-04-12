@@ -1,6 +1,6 @@
-Altreo 🚀
+# Altreo 🚀
 
-A decentralized trading education platform
+** A decentralized trading education platform **
 
 
 Overview
