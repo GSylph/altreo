@@ -2,6 +2,8 @@ import type React from "react"
 import { ArrowRight, BarChart2, BookOpen, Shield, Trophy, Users } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import Link from "next/link"
+import LearningPathDesigner from "@/components/learning-path-designer"
 
 export default function Home() {
   return (
@@ -18,10 +20,12 @@ export default function Home() {
               progress.
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-4">
-              <Button size="lg" className="bg-orange-500 hover:bg-orange-600 text-white">
-                Get Started
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
+              <Link href="/learning-path">
+                <Button size="lg" className="bg-orange-500 hover:bg-orange-600 text-white">
+                  Get Started
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Button>
+              </Link>
               <Button size="lg" variant="outline" className="border-orange-500 text-orange-500 hover:bg-orange-500/10">
                 View Challenges
               </Button>
