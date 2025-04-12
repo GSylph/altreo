@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Menu, X, User } from "lucide-react"
+import { Menu, X, User, Wallet } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
@@ -20,7 +20,12 @@ import { useWallet } from "@/components/wallet-provider"
 export function Navigation() {
   const [isOpen, setIsOpen] = useState(false)
   const pathname = usePathname()
-  const { isConnected, connect, disconnect } = useWallet()
+  const { isConnected, address, connect, disconnect } = useWallet()
+
+  const shortenAddress = (address: string | null) => {
+    if (!address) return "";
+    return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
+  };
 
   const navigation = [
     { name: "Home", href: "/" },
@@ -46,11 +51,10 @@ export function Navigation() {
                   <Link
                     key={item.name}
                     href={item.href}
-                    className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                      pathname === item.href
-                        ? "text-orange-500 border-b-2 border-orange-500"
-                        : "text-gray-300 hover:text-white hover:bg-dark-100"
-                    }`}
+                    className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${pathname === item.href
+                      ? "text-orange-500 border-b-2 border-orange-500"
+                      : "text-gray-300 hover:text-white hover:bg-dark-100"
+                      }`}
                   >
                     {item.name}
                   </Link>
@@ -63,17 +67,18 @@ export function Navigation() {
               {isConnected ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src="/placeholder.svg?height=32&width=32" alt="User" />
-                        <AvatarFallback className="bg-orange-500">
-                          <User className="h-4 w-4" />
-                        </AvatarFallback>
-                      </Avatar>
+                    <Button variant="ghost" className="relative h-10 rounded-full px-4 flex items-center gap-2 text-orange-500 border border-orange-500/30 hover:bg-orange-500/10">
+                      <Wallet className="h-4 w-4" />
+                      <span>{shortenAddress(address)}</span>
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56">
-                    <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                    <DropdownMenuLabel>Wallet Connected</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem className="flex flex-col items-start">
+                      <span className="text-xs text-gray-500">Address</span>
+                      <span className="text-sm font-mono">{shortenAddress(address)}</span>
+                    </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild>
                       <Link href="/profile">Profile</Link>
@@ -82,11 +87,14 @@ export function Navigation() {
                       <Link href="/settings">Settings</Link>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => disconnect()}>Disconnect Wallet</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => disconnect()} className="text-red-500 focus:text-red-500">
+                      Disconnect Wallet
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               ) : (
-                <Button onClick={() => connect()} className="bg-orange-500 hover:bg-orange-600">
+                <Button onClick={() => connect()} className="bg-orange-500 hover:bg-orange-600 flex items-center gap-2">
+                  <Wallet className="h-4 w-4" />
                   Connect Wallet
                 </Button>
               )}
@@ -116,11 +124,10 @@ export function Navigation() {
               <Link
                 key={item.name}
                 href={item.href}
-                className={`block px-3 py-2 rounded-md text-base font-medium ${
-                  pathname === item.href
-                    ? "text-orange-500 bg-dark-100"
-                    : "text-gray-300 hover:text-white hover:bg-dark-100"
-                }`}
+                className={`block px-3 py-2 rounded-md text-base font-medium ${pathname === item.href
+                  ? "text-orange-500 bg-dark-100"
+                  : "text-gray-300 hover:text-white hover:bg-dark-100"
+                  }`}
                 onClick={() => setIsOpen(false)}
               >
                 {item.name}
@@ -131,6 +138,19 @@ export function Navigation() {
             <div className="px-2 space-y-1">
               {isConnected ? (
                 <>
+                  <div className="px-3 py-2 flex items-center">
+                    <div className="flex-shrink-0 mr-3">
+                      <Avatar className="h-10 w-10 bg-orange-500/10 border border-orange-500/30">
+                        <AvatarFallback className="text-orange-500">
+                          <Wallet className="h-5 w-5" />
+                        </AvatarFallback>
+                      </Avatar>
+                    </div>
+                    <div>
+                      <div className="text-base font-medium text-white">Connected</div>
+                      <div className="text-sm font-mono text-orange-500">{shortenAddress(address)}</div>
+                    </div>
+                  </div>
                   <Link
                     href="/profile"
                     className="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-dark-100"
@@ -150,7 +170,7 @@ export function Navigation() {
                       disconnect()
                       setIsOpen(false)
                     }}
-                    className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-dark-100"
+                    className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-red-500 hover:text-white hover:bg-red-900/20"
                   >
                     Disconnect Wallet
                   </button>
@@ -161,8 +181,9 @@ export function Navigation() {
                     connect()
                     setIsOpen(false)
                   }}
-                  className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-orange-500 hover:text-white hover:bg-orange-600"
+                  className="flex w-full items-center gap-2 px-3 py-2 rounded-md text-base font-medium text-white bg-orange-500 hover:bg-orange-600"
                 >
+                  <Wallet className="h-4 w-4" />
                   Connect Wallet
                 </button>
               )}

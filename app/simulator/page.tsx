@@ -115,4 +115,202 @@ export default function TradingSimulator() {
             <CardContent>
               <div className="space-y-4">
                 <div>
-                  <div className\
+                  <div className="flex items-center justify-between rounded-md overflow-hidden">
+                    <button
+                      className={`flex-1 py-2 text-center ${tradeType === "buy" ? "bg-green-500 text-white" : "bg-[#2A2A2A] text-gray-400"}`}
+                      onClick={() => setTradeType("buy")}
+                    >
+                      Buy
+                    </button>
+                    <button
+                      className={`flex-1 py-2 text-center ${tradeType === "sell" ? "bg-red-500 text-white" : "bg-[#2A2A2A] text-gray-400"}`}
+                      onClick={() => setTradeType("sell")}
+                    >
+                      Sell
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between rounded-md overflow-hidden">
+                    <button
+                      className={`flex-1 py-2 text-center ${orderType === "market" ? "bg-blue-500 text-white" : "bg-[#2A2A2A] text-gray-400"}`}
+                      onClick={() => setOrderType("market")}
+                    >
+                      Market
+                    </button>
+                    <button
+                      className={`flex-1 py-2 text-center ${orderType === "limit" ? "bg-blue-500 text-white" : "bg-[#2A2A2A] text-gray-400"}`}
+                      onClick={() => setOrderType("limit")}
+                    >
+                      Limit
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-400 mb-1">Amount ({asset.symbol})</label>
+                  <input
+                    type="text"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    className="w-full p-2 bg-[#2A2A2A] border border-[#3A3A3A] rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    placeholder={`Amount in ${asset.symbol}`}
+                  />
+                </div>
+
+                {orderType === "limit" && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-400 mb-1">Price (USD)</label>
+                    <input
+                      type="text"
+                      value={price}
+                      onChange={(e) => setPrice(e.target.value)}
+                      className="w-full p-2 bg-[#2A2A2A] border border-[#3A3A3A] rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      placeholder="Limit price in USD"
+                    />
+                  </div>
+                )}
+
+                <div>
+                  <p className="text-sm text-gray-400 mb-2">
+                    Estimated cost: ${amount ? (parseFloat(amount) * asset.price).toFixed(2) : "0.00"}
+                  </p>
+                </div>
+
+                <Button
+                  className={`w-full ${tradeType === "buy" ? "bg-green-500 hover:bg-green-600" : "bg-red-500 hover:bg-red-600"}`}
+                >
+                  {tradeType === "buy" ? "Buy" : "Sell"} {asset.symbol}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Middle Column - Chart */}
+        <div className="lg:col-span-2 space-y-6">
+          <Card className="bg-[#1E1E1E] border-[#2A2A2A]">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>{asset.name} Price Chart</CardTitle>
+                <CardDescription>Current price: ${asset.price.toLocaleString()}</CardDescription>
+              </div>
+              <div className="flex space-x-2">
+                {["1h", "24h", "7d", "30d"].map((tf) => (
+                  <button
+                    key={tf}
+                    className={`px-3 py-1 text-sm rounded-md ${
+                      timeframe === tf ? "bg-blue-500 text-white" : "bg-[#2A2A2A] text-gray-400"
+                    }`}
+                    onClick={() => setTimeframe(tf)}
+                  >
+                    {tf}
+                  </button>
+                ))}
+              </div>
+            </CardHeader>
+            <CardContent>
+              {/* Simple price chart visualization */}
+              <div className="w-full h-64 relative">
+                <div className="absolute inset-0 flex items-end">
+                  {priceData.map((data, index) => (
+                    <div
+                      key={index}
+                      className="flex-1 flex flex-col items-center justify-end h-full"
+                    >
+                      <div
+                        className="w-full bg-blue-500 rounded-t-sm mx-1"
+                        style={{
+                          height: `${((data.price - 3000) / 300) * 100}%`,
+                        }}
+                      ></div>
+                      <div className="text-xs text-gray-500 mt-1">{data.time}</div>
+                    </div>
+                  ))}
+                </div>
+                <div className="absolute left-0 right-0 top-0 h-8 flex justify-between items-center text-xs text-gray-500">
+                  <span>$3,300</span>
+                  <span>High: $3,245</span>
+                </div>
+                <div className="absolute left-0 right-0 bottom-6 h-8 flex justify-between items-center text-xs text-gray-500">
+                  <span>$3,000</span>
+                  <span>Low: $3,100</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Portfolio & Transactions */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Portfolio */}
+            <Card className="bg-[#1E1E1E] border-[#2A2A2A]">
+              <CardHeader>
+                <CardTitle>Open Positions</CardTitle>
+                <CardDescription>Current portfolio value: $5,230.45</CardDescription>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="divide-y divide-[#2A2A2A]">
+                  {positions.map((position, index) => (
+                    <div key={index} className="p-4">
+                      <div className="flex justify-between items-center mb-2">
+                        <div className="font-medium">{position.asset}</div>
+                        <div className={`text-sm font-medium ${position.pnl.startsWith("+") ? "text-green-500" : "text-red-500"}`}>
+                          {position.pnl}
+                        </div>
+                      </div>
+                      <div className="flex justify-between text-sm text-gray-400">
+                        <div>{position.type} {position.size}</div>
+                        <div>Entry: ${position.entry}</div>
+                      </div>
+                    </div>
+                  ))}
+                  {positions.length === 0 && (
+                    <div className="p-4 text-center text-gray-400">
+                      No open positions
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Transactions */}
+            <Card className="bg-[#1E1E1E] border-[#2A2A2A]">
+              <CardHeader>
+                <CardTitle>Recent Transactions</CardTitle>
+                <CardDescription>Your trading activity</CardDescription>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="divide-y divide-[#2A2A2A]">
+                  {transactions.slice(0, 3).map((tx) => (
+                    <div key={tx.id} className="p-4">
+                      <div className="flex justify-between items-center mb-2">
+                        <div className="font-medium">
+                          <span className={tx.type === "Buy" ? "text-green-500" : "text-red-500"}>
+                            {tx.type}
+                          </span> {tx.asset}
+                        </div>
+                        <div className="text-sm text-gray-400">{tx.time}</div>
+                      </div>
+                      <div className="flex justify-between text-sm text-gray-400">
+                        <div>{tx.amount} @ ${tx.price}</div>
+                        <div>{tx.total}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {transactions.length > 3 && (
+                  <div className="p-4">
+                    <Button variant="ghost" className="w-full text-gray-400 hover:text-white">
+                      View All Transactions
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
