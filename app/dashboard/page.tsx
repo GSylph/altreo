@@ -248,15 +248,14 @@ export default function Dashboard() {
                 <div key={user.rank} className="flex items-center justify-between p-4">
                   <div className="flex items-center">
                     <div
-                      className={`w-8 h-8 flex items-center justify-center rounded-full mr-4 ${
-                        user.rank === 1
-                          ? "bg-yellow-500"
-                          : user.rank === 2
-                            ? "bg-gray-400"
-                            : user.rank === 3
-                              ? "bg-orange-700"
-                              : "bg-[#2A2A2A]"
-                      }`}
+                      className={`w-8 h-8 flex items-center justify-center rounded-full mr-4 ${user.rank === 1
+                        ? "bg-yellow-500"
+                        : user.rank === 2
+                          ? "bg-gray-400"
+                          : user.rank === 3
+                            ? "bg-orange-700"
+                            : "bg-[#2A2A2A]"
+                        }`}
                     >
                       {user.rank}
                     </div>
