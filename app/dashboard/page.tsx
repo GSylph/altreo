@@ -18,9 +18,10 @@ export default function Dashboard() {
   const [chartData, setChartData] = useState<number[]>([])
 
   useEffect(() => {
-    if (!isConnected) {
-      router.push("/")
-    }
+    // Temporarily commenting out wallet connection check
+    // if (!isConnected) {
+    //   router.push("/")
+    // }
 
     // Animate progress bars
     const timer = setTimeout(() => {
