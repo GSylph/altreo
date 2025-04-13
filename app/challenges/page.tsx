@@ -1,3 +1,5 @@
+"use client";
+
 import { Metadata } from "next";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
@@ -152,11 +154,11 @@ export default function ChallengesPage() {
   useEffect(() => {
     const savedProgress = localStorage.getItem('moduleProgress')
     const savedChallenges = localStorage.getItem('challenges')
-    
+
     if (savedProgress) {
       setModuleProgress(JSON.parse(savedProgress))
     }
-    
+
     if (savedChallenges) {
       const savedData = JSON.parse(savedChallenges)
       const updatedChallenges = challenges.map(challenge => ({
@@ -208,7 +210,7 @@ export default function ChallengesPage() {
     localStorage.setItem('moduleProgress', JSON.stringify(updatedProgress))
 
     // Reset challenge completion status
-    const updatedChallenges = localChallenges.map(challenge => 
+    const updatedChallenges = localChallenges.map(challenge =>
       challenge.id === challengeId ? { ...challenge, completed: false } : challenge
     )
     setLocalChallenges(updatedChallenges)
