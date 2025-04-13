@@ -37,9 +37,20 @@ export default function TradingSimulator() {
   const [amount, setAmount] = useState("")
   const [price, setPrice] = useState("")
   const [timeframe, setTimeframe] = useState("1h")
+  const [positionsList, setPositionsList] = useState(positions)
+  const [notification, setNotification] = useState<NotificationType | null>(null)
 
   // Find the selected asset data
   const asset = assets.find(a => a.symbol === selectedAsset) || assets[0]
+
+  type NotificationType = {
+    message: string;
+    type?: "success" | "error";
+  }
+
+  const triggerNotification = (msg: string, type: "success" | "error" = "success") => {
+    setNotification({ message: msg, type })
+  }
 
   return (
     <div className="container mx-auto py-8 px-4 md:px-6">
@@ -186,84 +197,113 @@ export default function TradingSimulator() {
 
             <Button
               className={`w-full ${tradeType === "buy" ? "bg-green-500 hover:bg-green-600" : "bg-red-500 hover:bg-red-600"}`}
+              onClick={() => {
+                if (!amount || isNaN(parseFloat(amount))) {
+                  triggerNotification("Please enter a valid amount", "error")
+                  return
+                }
+
+                const entryPrice = orderType === "limit" && price ? parseFloat(price) : asset.price
+                const size = `${amount} ${asset.symbol}`
+                const newPosition = {
+                  asset: asset.symbol,
+                  type: tradeType === "buy" ? "Long" : "Short",
+                  size,
+                  entry: entryPrice,
+                  current: asset.price,
+                  pnl: "0.00%", // Initial PnL
+                }
+
+                setPositionsList(prev => [newPosition, ...prev])
+                triggerNotification(`${tradeType === "buy" ? "Bought" : "Sold"} ${size} at $${entryPrice.toFixed(2)}`)
+                setAmount("")
+                setPrice("")
+              }}
             >
               {tradeType === "buy" ? "Buy" : "Sell"} in {asset.symbol}
             </Button>
+
           </div>
         </CardContent>
       </Card>
 
-  <div className="lg:col-span-2 space-y-6">
+      <div className="lg:col-span-2 space-y-6">
+        {notification && (
+          <div className={`fixed top-5 right-5 z-50 px-4 py-2 rounded text-white shadow-lg 
+    ${notification.type === "error" ? "bg-red-600" : "bg-green-600"}`}>
+            {notification.message}
+          </div>
+        )}
 
-    {/* Portfolio & Transactions */}
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      {/* Portfolio */}
-      <Card className="bg-[#1E1E1E] border-[#2A2A2A]">
-        <CardHeader>
-          <CardTitle>Open Positions</CardTitle>
-          <CardDescription>Current portfolio value: $5,230.45</CardDescription>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="divide-y divide-[#2A2A2A]">
-            {positions.map((position, index) => (
-              <div key={index} className="p-4">
-                <div className="flex justify-between items-center mb-2">
-                  <div className="font-medium">{position.asset}</div>
-                  <div className={`text-sm font-medium ${position.pnl.startsWith("+") ? "text-green-500" : "text-red-500"}`}>
-                    {position.pnl}
+        {/* Portfolio & Transactions */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Portfolio */}
+          <Card className="bg-[#1E1E1E] border-[#2A2A2A]">
+            <CardHeader>
+              <CardTitle>Open Positions</CardTitle>
+              <CardDescription>Current portfolio value: $5,230.45</CardDescription>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="divide-y divide-[#2A2A2A]">
+                {positionsList.map((position, index) => (
+                  <div key={index} className="p-4">
+                    <div className="flex justify-between items-center mb-2">
+                      <div className="font-medium">{position.asset}</div>
+                      <div className={`text-sm font-medium ${position.pnl.startsWith("+") ? "text-green-500" : "text-red-500"}`}>
+                        {position.pnl}
+                      </div>
+                    </div>
+                    <div className="flex justify-between text-sm text-gray-400">
+                      <div>{position.type} {position.size}</div>
+                      <div>Entry: ${position.entry}</div>
+                    </div>
                   </div>
-                </div>
-                <div className="flex justify-between text-sm text-gray-400">
-                  <div>{position.type} {position.size}</div>
-                  <div>Entry: ${position.entry}</div>
-                </div>
-              </div>
-            ))}
-            {positions.length === 0 && (
-              <div className="p-4 text-center text-gray-400">
-                No open positions
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Transactions */}
-      <Card className="bg-[#1E1E1E] border-[#2A2A2A]">
-        <CardHeader>
-          <CardTitle>Recent Transactions</CardTitle>
-          <CardDescription>Your trading activity</CardDescription>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="divide-y divide-[#2A2A2A]">
-            {transactions.slice(0, 3).map((tx) => (
-              <div key={tx.id} className="p-4">
-                <div className="flex justify-between items-center mb-2">
-                  <div className="font-medium">
-                    <span className={tx.type === "Buy" ? "text-green-500" : "text-red-500"}>
-                      {tx.type}
-                    </span> {tx.asset}
+                ))}
+                {positions.length === 0 && (
+                  <div className="p-4 text-center text-gray-400">
+                    No open positions
                   </div>
-                  <div className="text-sm text-gray-400">{tx.time}</div>
-                </div>
-                <div className="flex justify-between text-sm text-gray-400">
-                  <div>{tx.amount} @ ${tx.price}</div>
-                  <div>{tx.total}</div>
-                </div>
+                )}
               </div>
-            ))}
-          </div>
-          {transactions.length > 3 && (
-            <div className="p-4">
-              <Button variant="ghost" className="w-full text-gray-400 hover:text-white">
-                View All Transactions
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+
+          {/* Transactions */}
+          <Card className="bg-[#1E1E1E] border-[#2A2A2A]">
+            <CardHeader>
+              <CardTitle>Recent Transactions</CardTitle>
+              <CardDescription>Your trading activity</CardDescription>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="divide-y divide-[#2A2A2A]">
+                {transactions.slice(0, 3).map((tx) => (
+                  <div key={tx.id} className="p-4">
+                    <div className="flex justify-between items-center mb-2">
+                      <div className="font-medium">
+                        <span className={tx.type === "Buy" ? "text-green-500" : "text-red-500"}>
+                          {tx.type}
+                        </span> {tx.asset}
+                      </div>
+                      <div className="text-sm text-gray-400">{tx.time}</div>
+                    </div>
+                    <div className="flex justify-between text-sm text-gray-400">
+                      <div>{tx.amount} @ ${tx.price}</div>
+                      <div>{tx.total}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {transactions.length > 3 && (
+                <div className="p-4">
+                  <Button variant="ghost" className="w-full text-gray-400 hover:text-white">
+                    View All Transactions
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
-      </div>
-      </div>
   )
 }
