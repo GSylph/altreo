@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { CheckCircle, ChevronRight, Loader2 } from "lucide-react"
@@ -10,6 +10,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Progress } from "@/components/ui/progress"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
+import ImmersiveAssistant from "./immersive-assistant"
+import VirtualAssistantLoader from "./virtual-assistant-loader"
 
 // Types for our component
 type Question = {
@@ -93,7 +95,7 @@ const learningPaths: LearningPath[] = [
     title: "Blockchain Fundamentals",
     description:
       "Start your journey with the core concepts of blockchain technology, cryptocurrencies, and the basics of decentralized systems.",
-    image: "/placeholder.svg?height=200&width=300",
+    image: "/courses/bitcoin-fundamentals.jpg",
     difficulty: "Beginner",
     duration: "4 weeks",
     modules: 6,
@@ -103,11 +105,21 @@ const learningPaths: LearningPath[] = [
     title: "DeFi Explorer",
     description:
       "Dive into decentralized finance protocols, understand liquidity pools, yield farming, and how to evaluate DeFi opportunities.",
-    image: "/placeholder.svg?height=200&width=300",
+    image: "/courses/defi-explorer.jpg",
     difficulty: "Intermediate",
     duration: "6 weeks",
     modules: 8,
   },
+  {
+    id: "trading-mastery",
+    title: "Crypto Trading Mastery",
+    description:
+      "Master the art of cryptocurrency trading with advanced technical analysis, risk management, and trading strategies.",
+    image: "/courses/trading-mastery.jpg",
+    difficulty: "Advanced",
+    duration: "8 weeks",
+    modules: 10,
+  }
 ]
 
 // Function to determine recommended paths based on answers
@@ -123,9 +135,10 @@ export default function LearningPathDesigner() {
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const [selectedPath, setSelectedPath] = useState<string | null>(null)
   const [isCreatingAccount, setIsCreatingAccount] = useState(false)
+  const [currentMessage, setCurrentMessage] = useState("")
 
   // Calculate progress percentage
-  const totalSteps = questions.length + 2 // Questions + Recommendation + Account Creation
+  const totalSteps = questions.length + 2 // Only count actual steps
   const progress = Math.round((currentStep / totalSteps) * 100)
 
   // Get recommended paths based on answers
@@ -133,7 +146,7 @@ export default function LearningPathDesigner() {
 
   // Handle answer selection
   const handleAnswerSelect = (questionId: string, value: string) => {
-    setAnswers((prev) => ({
+    setAnswers(prev => ({
       ...prev,
       [questionId]: value,
     }))
@@ -141,8 +154,13 @@ export default function LearningPathDesigner() {
 
   // Handle next step
   const handleNext = () => {
-    if (currentStep < questions.length + 1) {
-      setCurrentStep((prev) => prev + 1)
+    if (currentStep < totalSteps - 1) {
+      // If we've completed 2 questions and it's not already an assistant step
+      if ((currentStep + 1) % 3 === 2) {
+        setCurrentStep(prev => prev + 1)
+      } else {
+        setCurrentStep(prev => prev + 1)
+      }
     }
   }
 
@@ -151,66 +169,118 @@ export default function LearningPathDesigner() {
     setSelectedPath(pathId)
   }
 
-  // Handle account creation and redirect
+  // Handle account creation
   const handleCreateAccount = async () => {
     setIsCreatingAccount(true)
 
-    // Simulate API call for account creation
-    await new Promise((resolve) => setTimeout(resolve, 2000))
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 2000))
 
-    // Store user preferences in localStorage (in a real app, this would go to a database)
     localStorage.setItem("userLearningPath", selectedPath || "")
     localStorage.setItem("userPreferences", JSON.stringify(answers))
 
-    // Redirect to dashboard
     router.push("/dashboard")
   }
 
+  // Get current message based on step
+  useEffect(() => {
+    let message = ""
+    
+    // Assistant appears every 2 questions (at steps 2, 5, 8, etc.)
+    if (currentStep % 3 === 2 && currentStep < questions.length) {
+      const completedQuestions = currentStep - Math.floor(currentStep / 3)
+      message = `Great progress! You've completed ${completedQuestions} questions. Let's keep going!`
+    } else if (currentStep === questions.length) {
+      message = "Based on your answers, I've found some great learning paths for you! Take a look and choose one that interests you."
+    } else if (currentStep === questions.length + 1) {
+      message = "Great choice! Let's set up your learning account so you can start your journey."
+    }
+
+    setCurrentMessage(message)
+
+    // Auto-advance after 3 seconds on assistant steps
+    if (currentStep % 3 === 2 && currentStep < questions.length) {
+      const timer = setTimeout(() => {
+        setCurrentStep(prev => prev + 1)
+      }, 3000)
+      return () => clearTimeout(timer)
+    }
+  }, [currentStep])
+
   // Render the current step
   const renderStep = () => {
-    // Questions step
-    if (currentStep < questions.length) {
-      const currentQuestion = questions[currentStep]
+    // Assistant step (appears every 2 questions)
+    if (currentStep % 3 === 2 && currentStep < questions.length) {
       return (
         <motion.div
-          key={`question-${currentQuestion.id}`}
+          key={`assistant-${currentStep}`}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          transition={{ duration: 0.3 }}
+          className="space-y-6"
+        >
+          <CardContent className="py-8">
+            <VirtualAssistantLoader
+              message={currentMessage}
+              mood="excited"
+            />
+          </CardContent>
+        </motion.div>
+      )
+    }
+
+    // Question step
+    if (currentStep < questions.length && currentStep % 3 !== 2) {
+      return (
+        <motion.div
+          key={`question-${questions[currentStep].id}`}
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: -20 }}
           transition={{ duration: 0.3 }}
           className="space-y-6"
         >
-          <CardHeader>
-            <CardTitle className="text-2xl">{currentQuestion.question}</CardTitle>
-          </CardHeader>
-          <CardContent>
+          <CardContent className="pt-8 pb-6">
+            <div className="mb-8">
+              <h3 className="text-2xl font-semibold text-orange-500 mb-2">
+                {questions[currentStep].question}
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                Select the option that best describes you
+              </p>
+            </div>
             <RadioGroup
-              value={answers[currentQuestion.id] || ""}
-              onValueChange={(value) => handleAnswerSelect(currentQuestion.id, value)}
-              className="space-y-3"
+              value={answers[questions[currentStep].id] || ""}
+              onValueChange={(value) => handleAnswerSelect(questions[currentStep].id, value)}
+              className="space-y-4"
             >
-              {currentQuestion.options.map((option) => (
+              {questions[currentStep].options.map((option) => (
                 <div
                   key={option.id}
-                  className="flex items-center space-x-2 rounded-lg border p-4 cursor-pointer hover:bg-muted transition-colors"
-                  onClick={() => handleAnswerSelect(currentQuestion.id, option.value)}
+                  className="flex items-center space-x-3 rounded-lg border p-5 cursor-pointer hover:bg-muted transition-colors"
+                  onClick={() => handleAnswerSelect(questions[currentStep].id, option.value)}
                 >
                   <RadioGroupItem value={option.value} id={option.id} />
-                  <Label htmlFor={option.id} className="flex-grow cursor-pointer">
+                  <Label htmlFor={option.id} className="flex-grow cursor-pointer text-base">
                     {option.text}
                   </Label>
                 </div>
               ))}
             </RadioGroup>
           </CardContent>
-          <CardFooter className="flex justify-between">
+          <CardFooter className="flex justify-between py-6 px-8">
             <Button
               variant="ghost"
-              onClick={() => currentStep > 0 ? setCurrentStep((prev) => prev - 1) : router.push("/")}
+              onClick={() => setCurrentStep((prev) => prev - 1)}
             >
               Back
             </Button>
-            <Button onClick={handleNext} disabled={!answers[currentQuestion.id]} className="gap-2">
+            <Button 
+              onClick={handleNext} 
+              disabled={!answers[questions[currentStep].id]} 
+              className="gap-2"
+            >
               Next <ChevronRight size={16} />
             </Button>
           </CardFooter>
@@ -229,49 +299,53 @@ export default function LearningPathDesigner() {
           transition={{ duration: 0.3 }}
           className="space-y-6"
         >
-          <CardHeader>
-            <CardTitle className="text-2xl">Recommended Learning Paths</CardTitle>
-            <CardDescription>
-              Based on your answers, we've selected the following learning paths for you
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-6 md:grid-cols-2">
-              {recommendedPaths.map((path) => (
-                <div
-                  key={path.id}
-                  className={`
-                    relative rounded-lg border p-4 transition-all
-                    ${selectedPath === path.id ? "ring-2 ring-primary" : "hover:border-primary cursor-pointer"}
-                  `}
-                  onClick={() => handlePathSelect(path.id)}
-                >
-                  {selectedPath === path.id && <CheckCircle className="absolute top-3 right-3 h-5 w-5 text-primary" />}
-                  <div className="aspect-video w-full overflow-hidden rounded-md mb-4">
-                    <img
-                      src={path.image || "/placeholder.svg"}
-                      alt={path.title}
-                      className="h-full w-full object-cover transition-transform hover:scale-105"
-                    />
+          <CardContent className="pt-8 pb-6">
+            <VirtualAssistantLoader
+              message={currentMessage}
+              mood="excited"
+            />
+            <div className="mt-8">
+              <div className="grid gap-6">
+                {recommendedPaths.map((path) => (
+                  <div
+                    key={path.id}
+                    className={`
+                      relative rounded-lg border p-4 transition-all
+                      ${selectedPath === path.id ? "ring-2 ring-primary" : "hover:border-primary cursor-pointer"}
+                    `}
+                    onClick={() => handlePathSelect(path.id)}
+                  >
+                    {selectedPath === path.id && <CheckCircle className="absolute top-3 right-3 h-5 w-5 text-primary" />}
+                    <div className="flex gap-4">
+                      <div className="w-24 h-24 rounded-md overflow-hidden">
+                        <img
+                          src={path.image || "/placeholder.svg"}
+                          alt={path.title}
+                          className="h-full w-full object-cover"
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-lg font-semibold">{path.title}</h3>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          <span className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800">
+                            {path.difficulty}
+                          </span>
+                          <span className="inline-flex items-center rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-medium text-purple-800">
+                            {path.duration}
+                          </span>
+                          <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
+                            {path.modules} modules
+                          </span>
+                        </div>
+                        <p className="mt-2 text-sm text-muted-foreground">{path.description}</p>
+                      </div>
+                    </div>
                   </div>
-                  <h3 className="text-lg font-semibold">{path.title}</h3>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    <span className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800">
-                      {path.difficulty}
-                    </span>
-                    <span className="inline-flex items-center rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-medium text-purple-800">
-                      {path.duration}
-                    </span>
-                    <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
-                      {path.modules} modules
-                    </span>
-                  </div>
-                  <p className="mt-3 text-sm text-muted-foreground">{path.description}</p>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </CardContent>
-          <CardFooter className="flex justify-between">
+          <CardFooter className="flex justify-between py-6 px-8">
             <Button variant="ghost" onClick={() => setCurrentStep((prev) => prev - 1)}>
               Back
             </Button>
@@ -290,41 +364,37 @@ export default function LearningPathDesigner() {
           key="account-creation"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
           transition={{ duration: 0.3 }}
           className="space-y-6 text-center"
         >
-          <CardHeader>
-            <CardTitle className="text-2xl">Create Your Learning Account</CardTitle>
-            <CardDescription>We're almost there! Let's set up your personalized learning dashboard.</CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col items-center">
-            <div className="mb-6 rounded-full bg-primary/10 p-6">
+          <CardContent className="pt-8 pb-6">
+            <VirtualAssistantLoader
+              message={currentMessage}
+              mood="happy"
+            />
+            <div className="mt-8">
               {isCreatingAccount ? (
-                <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                <div className="space-y-2">
+                  <h3 className="text-lg font-medium">Setting up your account...</h3>
+                  <p className="text-sm text-muted-foreground">
+                    We're personalizing your learning experience based on your preferences.
+                  </p>
+                </div>
               ) : (
-                <img src="/placeholder.svg?height=100&width=100" alt="Account creation" className="h-24 w-24" />
+                <div className="space-y-4 w-full max-w-md mx-auto">
+                  <p className="text-sm text-muted-foreground">
+                    Click the button below to create your account and access your personalized learning path.
+                  </p>
+                  <Button onClick={handleCreateAccount} className="w-full" size="lg">
+                    Create My Learning Account
+                  </Button>
+                </div>
               )}
             </div>
-            {isCreatingAccount ? (
-              <div className="space-y-2">
-                <h3 className="text-lg font-medium">Setting up your account...</h3>
-                <p className="text-sm text-muted-foreground">
-                  We're personalizing your learning experience based on your preferences.
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-4 w-full max-w-md">
-                <p className="text-sm text-muted-foreground">
-                  Click the button below to create your account and access your personalized learning path.
-                </p>
-                <Button onClick={handleCreateAccount} className="w-full" size="lg">
-                  Create My Learning Account
-                </Button>
-              </div>
-            )}
           </CardContent>
           {!isCreatingAccount && (
-            <CardFooter className="justify-center">
+            <CardFooter className="justify-center py-6">
               <Button variant="ghost" onClick={() => setCurrentStep((prev) => prev - 1)}>
                 Back
               </Button>
@@ -350,6 +420,16 @@ export default function LearningPathDesigner() {
         </div>
 
         <Card className="w-full">
+          <div className="relative">
+            <div className="h-2 w-full bg-gray-800 rounded-t-lg overflow-hidden">
+              <motion.div
+                className="h-full bg-orange-500"
+                initial={{ width: 0 }}
+                animate={{ width: `${progress}%` }}
+                transition={{ duration: 0.5 }}
+              />
+            </div>
+          </div>
           <AnimatePresence mode="wait">{renderStep()}</AnimatePresence>
         </Card>
       </div>
