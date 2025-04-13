@@ -1,6 +1,8 @@
+
 import { Metadata } from "next";
 import Link from "next/link";
 import { LoginForm } from "@/components/auth/login-form";
+import { Suspense } from "react";
 
 export const metadata: Metadata = {
     title: "Login - DeFi Trading Education Portal",
