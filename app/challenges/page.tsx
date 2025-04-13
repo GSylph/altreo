@@ -1,4 +1,8 @@
-"use client"
+import { Metadata } from "next";
+import { auth } from "@/auth";
+import { redirect } from "next/navigation";
+import { getChallenges } from "@/lib/actions/challenges";
+import ChallengesGrid from "@/components/challenges/challenges-grid";
 
 import { useState, useEffect } from "react"
 import { Search, Clock, Target, Award, ChevronDown, CheckCircle2, Image as ImageIcon, BookOpen, RefreshCw, Trash2, RotateCcw } from "lucide-react"
@@ -20,7 +24,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 
-// Sample challenge data
 const challengesData = [
   {
     id: 1,
@@ -311,5 +314,5 @@ export default function ChallengesPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }

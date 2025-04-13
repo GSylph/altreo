@@ -17,7 +17,7 @@ export const Logo: FC<LogoProps> = ({ className = "h-8 w-auto" }) => {
         />
         <path d="M15 15L25 25M15 25L25 15" stroke="#FF7B24" strokeWidth="2" />
         <text x="45" y="25" fill="#FFFFFF" fontSize="18" fontWeight="bold">
-          DeFiEDU
+          Altreo
         </text>
       </svg>
     </div>
