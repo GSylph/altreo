@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { Search, Clock, Target, Award, ChevronDown } from "lucide-react"
+import { useState, useEffect } from "react"
+import { Search, Clock, Target, Award, ChevronDown, CheckCircle2, Image as ImageIcon, BookOpen, RefreshCw, Trash2, RotateCcw } from "lucide-react"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -9,9 +9,19 @@ import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import Link from "next/link"
+import { ArrowRight } from "lucide-react"
+import { challenges } from "@/data/challenges"
+import Image from "next/image"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 // Sample challenge data
-const challenges = [
+const challengesData = [
   {
     id: 1,
     title: "DeFi Basics",
@@ -131,201 +141,174 @@ const challenges = [
   },
 ]
 
-export default function Challenges() {
-  const [searchTerm, setSearchTerm] = useState("")
-  const [difficultyFilter, setDifficultyFilter] = useState("all")
-  const [statusFilter, setStatusFilter] = useState("all")
-  const [categoryFilter, setCategoryFilter] = useState("all")
-  const [expandedChallenge, setExpandedChallenge] = useState<number | null>(null)
+export default function ChallengesPage() {
+  const [localChallenges, setLocalChallenges] = useState(challenges)
+  const [moduleProgress, setModuleProgress] = useState<Record<string, { completedModules: number[], isCompleted: boolean }>>({})
 
-  // Filter challenges based on search and filters
-  const filteredChallenges = challenges.filter((challenge) => {
-    const matchesSearch =
-      challenge.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      challenge.description.toLowerCase().includes(searchTerm.toLowerCase())
+  // Load progress from localStorage on mount
+  useEffect(() => {
+    const savedProgress = localStorage.getItem('moduleProgress')
+    const savedChallenges = localStorage.getItem('challenges')
+    
+    if (savedProgress) {
+      setModuleProgress(JSON.parse(savedProgress))
+    }
+    
+    if (savedChallenges) {
+      const savedData = JSON.parse(savedChallenges)
+      const updatedChallenges = challenges.map(challenge => ({
+        ...challenge,
+        completed: savedData.find((saved: any) => saved.id === challenge.id)?.completed || false
+      }))
+      setLocalChallenges(updatedChallenges)
+    } else {
+      localStorage.setItem('challenges', JSON.stringify(challenges))
+    }
+  }, [])
 
-    const matchesDifficulty =
-      difficultyFilter === "all" || challenge.difficulty.toLowerCase() === difficultyFilter.toLowerCase()
+  const resetAllProgress = () => {
+    setModuleProgress({})
+    localStorage.removeItem('moduleProgress')
+    const resetChallenges = challenges.map(challenge => ({
+      ...challenge,
+      completed: false
+    }))
+    setLocalChallenges(resetChallenges)
+    localStorage.setItem('challenges', JSON.stringify(resetChallenges))
+  }
 
-    const matchesStatus =
-      statusFilter === "all" || challenge.status.toLowerCase().replace(" ", "-") === statusFilter.toLowerCase()
+  const completeAllChallenges = () => {
+    const completedChallenges = challenges.map(challenge => ({
+      ...challenge,
+      completed: true
+    }))
+    setLocalChallenges(completedChallenges)
+    localStorage.setItem('challenges', JSON.stringify(completedChallenges))
 
-    const matchesCategory =
-      categoryFilter === "all" || challenge.category.toLowerCase() === categoryFilter.toLowerCase()
+    // Complete all modules for each challenge
+    const allProgress: Record<string, { completedModules: number[], isCompleted: boolean }> = {}
+    challenges.forEach(challenge => {
+      allProgress[challenge.id] = {
+        completedModules: Array.from({ length: challenge.content.length }, (_, i) => i),
+        isCompleted: true
+      }
+    })
+    setModuleProgress(allProgress)
+    localStorage.setItem('moduleProgress', JSON.stringify(allProgress))
+  }
 
-    return matchesSearch && matchesDifficulty && matchesStatus && matchesCategory
-  })
+  const resetSpecificChallenge = (challengeId: string) => {
+    // Reset specific challenge progress
+    const updatedProgress = { ...moduleProgress }
+    delete updatedProgress[challengeId]
+    setModuleProgress(updatedProgress)
+    localStorage.setItem('moduleProgress', JSON.stringify(updatedProgress))
 
-  // Get unique categories for filter
-  const categories = Array.from(new Set(challenges.map((challenge) => challenge.category)))
+    // Reset challenge completion status
+    const updatedChallenges = localChallenges.map(challenge => 
+      challenge.id === challengeId ? { ...challenge, completed: false } : challenge
+    )
+    setLocalChallenges(updatedChallenges)
+    localStorage.setItem('challenges', JSON.stringify(updatedChallenges))
+  }
 
   return (
-    <div className="container mx-auto py-8 px-4 md:px-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
-        <div>
-          <h1 className="text-3xl font-bold mb-2">Trading Challenges</h1>
-          <p className="text-gray-400">Master DeFi trading through interactive challenges</p>
+    <div className="container mx-auto px-4 py-12">
+      <div className="space-y-8">
+        <div className="flex justify-between items-center">
+          <div className="space-y-2">
+            <h1 className="text-3xl font-bold">Challenges</h1>
+            <p className="text-muted-foreground">
+              Complete challenges to earn rewards and level up your skills
+            </p>
+          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="gap-2">
+                <RefreshCw className="h-4 w-4" />
+                Manage Progress
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem onClick={resetAllProgress} className="gap-2 text-destructive">
+                <Trash2 className="h-4 w-4" />
+                Reset All Progress
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={completeAllChallenges} className="gap-2">
+                <CheckCircle2 className="h-4 w-4" />
+                Complete All
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
-      </div>
 
-      {/* Filters */}
-      <div className="bg-[#1E1E1E] border border-[#2A2A2A] rounded-lg p-4 mb-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <Input
-                placeholder="Search challenges..."
-                className="pl-10 bg-[#121212] border-[#2A2A2A]"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-          </div>
-          <div>
-            <Select value={difficultyFilter} onValueChange={setDifficultyFilter}>
-              <SelectTrigger className="bg-[#121212] border-[#2A2A2A]">
-                <SelectValue placeholder="Difficulty" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Difficulties</SelectItem>
-                <SelectItem value="beginner">Beginner</SelectItem>
-                <SelectItem value="intermediate">Intermediate</SelectItem>
-                <SelectItem value="advanced">Advanced</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="bg-[#121212] border-[#2A2A2A]">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Statuses</SelectItem>
-                <SelectItem value="not-started">Not Started</SelectItem>
-                <SelectItem value="in-progress">In Progress</SelectItem>
-                <SelectItem value="completed">Completed</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="bg-[#121212] border-[#2A2A2A]">
-                <SelectValue placeholder="Category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                {categories.map((category) => (
-                  <SelectItem key={category} value={category.toLowerCase()}>
-                    {category}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-      </div>
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {localChallenges.map((challenge) => {
+            const progress = moduleProgress[challenge.id] || { completedModules: [], isCompleted: false }
+            const completedModulesCount = progress.completedModules.length
+            const progressPercentage = (completedModulesCount / challenge.content.length) * 100
 
-      {/* Challenge Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredChallenges.map((challenge) => (
-          <Collapsible
-            key={challenge.id}
-            open={expandedChallenge === challenge.id}
-            onOpenChange={() => {
-              setExpandedChallenge(expandedChallenge === challenge.id ? null : challenge.id)
-            }}
-          >
-            <Card className="bg-[#1E1E1E] border-[#2A2A2A] card-hover">
-              <CardHeader className="pb-2">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <CardTitle>{challenge.title}</CardTitle>
-                    <CardDescription>{challenge.description}</CardDescription>
-                  </div>
-                  <Badge
-                    className={`${
-                      challenge.status === "Completed"
-                        ? "bg-green-600"
-                        : challenge.status === "In Progress"
-                          ? "bg-orange-500"
-                          : "bg-gray-600"
-                    }`}
-                  >
-                    {challenge.status}
-                  </Badge>
+            return (
+              <div
+                key={challenge.id}
+                className="rounded-lg border bg-card text-card-foreground shadow-sm overflow-hidden transition-all transform hover:scale-[1.02] hover:shadow-lg"
+              >
+                <div className="relative h-48">
+                  <Image
+                    src={challenge.image}
+                    alt={challenge.title}
+                    fill
+                    className="object-cover"
+                  />
                 </div>
-              </CardHeader>
-              <CardContent>
-                <div className="mb-4">
-                  <div className="flex justify-between mb-1 text-sm">
-                    <span>Progress</span>
-                    <span>{challenge.progress}%</span>
+                <div className="p-6 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-xl font-semibold">{challenge.title}</h2>
+                    <Badge variant={challenge.difficulty as any}>
+                      {challenge.difficulty}
+                    </Badge>
                   </div>
-                  <Progress value={challenge.progress} className="h-2 bg-[#2A2A2A]" />
-                </div>
-                <div className="flex justify-between text-sm text-gray-400">
-                  <div className="flex items-center">
-                    <Target className="h-4 w-4 mr-1 text-orange-500" />
-                    {challenge.difficulty}
-                  </div>
-                  <div className="flex items-center">
-                    <Clock className="h-4 w-4 mr-1 text-orange-500" />
-                    {challenge.time}
-                  </div>
-                  <div className="flex items-center">
-                    <Award className="h-4 w-4 mr-1 text-orange-500" />
-                    Reward
-                  </div>
-                </div>
-                <CollapsibleTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-full mt-4 text-orange-500 hover:text-orange-600 hover:bg-orange-500/10"
-                  >
-                    {expandedChallenge === challenge.id ? "Show Less" : "Show More"}
-                    <ChevronDown
-                      className={`h-4 w-4 ml-2 transition-transform ${expandedChallenge === challenge.id ? "rotate-180" : ""}`}
-                    />
-                  </Button>
-                </CollapsibleTrigger>
-              </CardContent>
-              <CollapsibleContent>
-                <div className="px-6 py-2 border-t border-[#2A2A2A]">
-                  <div className="mb-4">
-                    <h4 className="font-medium mb-2">Description</h4>
-                    <p className="text-sm text-gray-400">{challenge.longDescription}</p>
-                  </div>
-                  <div className="mb-4">
-                    <h4 className="font-medium mb-2">Reward</h4>
-                    <div className="flex items-center">
-                      <div className="w-10 h-10 rounded-full bg-orange-500 flex items-center justify-center mr-3">
-                        <Award className="h-6 w-6 text-white" />
-                      </div>
-                      <span>{challenge.reward}</span>
+                  <p className="text-muted-foreground">{challenge.description}</p>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm">
+                      <Clock className="h-4 w-4" />
+                      <span>{challenge.duration}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <BookOpen className="h-4 w-4" />
+                      <span>{challenge.content.length} modules</span>
+                    </div>
+                    <Progress value={progressPercentage} className="h-2" />
+                    <div className="flex items-center justify-between text-sm">
+                      <span>{completedModulesCount} of {challenge.content.length} modules completed</span>
+                      {progress.isCompleted && (
+                        <Badge variant="secondary" className="bg-green-600 text-white hover:bg-green-700 gap-1">
+                          <CheckCircle2 className="h-3 w-3" />
+                          Completed
+                        </Badge>
+                      )}
                     </div>
                   </div>
+                  <div className="flex gap-2">
+                    <Button asChild className="flex-1">
+                      <Link href={`/challenges/${challenge.slug}`}>
+                        {progress.isCompleted ? "View Challenge" : "Start Challenge"}
+                      </Link>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => resetSpecificChallenge(challenge.id)}
+                      className="shrink-0"
+                    >
+                      <RotateCcw className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
-              </CollapsibleContent>
-              <CardFooter>
-                <Button
-                  className={`w-full ${
-                    challenge.status === "Completed"
-                      ? "bg-green-600 hover:bg-green-700"
-                      : "bg-orange-500 hover:bg-orange-600"
-                  }`}
-                >
-                  {challenge.status === "Completed"
-                    ? "View Completion"
-                    : challenge.status === "In Progress"
-                      ? "Continue Challenge"
-                      : "Start Challenge"}
-                </Button>
-              </CardFooter>
-            </Card>
-          </Collapsible>
-        ))}
+              </div>
+            )
+          })}
+        </div>
       </div>
     </div>
   )
