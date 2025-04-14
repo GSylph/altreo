@@ -11,6 +11,8 @@ import ChallengeContent from "@/components/challenge-content"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
+import { GenerateNFT } from "@/components/GenerateNFT"
+import Link from "next/link"
 
 interface ChallengePageProps {
   params: Promise<{
@@ -33,6 +35,7 @@ export default function ChallengePage(props: ChallengePageProps) {
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null)
   const [quizError, setQuizError] = useState<string | null>(null)
   const [isCorrect, setIsCorrect] = useState(false)
+  const [currentStep, setCurrentStep] = useState(0)
 
   // Load progress from localStorage on mount
   useEffect(() => {
@@ -274,6 +277,40 @@ export default function ChallengePage(props: ChallengePageProps) {
               </>
             )}
           </div>
+
+          {currentStep === challenge.content.length && (
+            <div className="space-y-6">
+              <div className="text-center">
+                <h2 className="text-2xl font-bold text-white mb-2">
+                  🎉 Challenge Completed!
+                </h2>
+                <p className="text-gray-300">
+                  Congratulations! You've successfully completed all the questions.
+                </p>
+              </div>
+              
+              <GenerateNFT 
+                challengeId={challenge.id}
+                challengeName={challenge.title}
+                difficulty={challenge.difficulty}
+              />
+              
+              <div className="flex justify-center gap-4">
+                <button
+                  onClick={() => setCurrentStep(0)}
+                  className="px-4 py-2 text-white bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors"
+                >
+                  Restart Challenge
+                </button>
+                <Link
+                  href="/challenges"
+                  className="px-4 py-2 text-white bg-orange-500 rounded-lg hover:bg-orange-600 transition-colors"
+                >
+                  Back to Challenges
+                </Link>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

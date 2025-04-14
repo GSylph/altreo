@@ -16,63 +16,36 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Logo } from "@/components/logo"
 import { useWallet } from "@/components/wallet-provider"
+import { WalletMultiButton } from "@solana/wallet-adapter-react-ui"
 
 export function Navigation() {
   const [isOpen, setIsOpen] = useState(false)
-  const [user, setUser] = useState<{ id: string; email: string; username: string } | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [user, setUser] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
   const pathname = usePathname()
   const router = useRouter()
   const { isConnected, address, connect, disconnect } = useWallet()
 
-  // Fetch user data on component mount
   useEffect(() => {
-    async function fetchUser() {
-      setIsLoading(true);
+    const fetchUser = async () => {
       try {
-        console.log("Fetching user data from /api/me");
-        const res = await fetch('/api/me', {
-          method: 'GET',
-          credentials: 'include', // Important for including cookies
-          headers: {
-            'Cache-Control': 'no-cache',
-          },
-        });
-
-        console.log(`/api/me response status: ${res.status}`);
-
-        if (res.ok) {
-          const data = await res.json();
-          console.log("User data received:", data);
-
-          if (data.authenticated) {
-            setUser(data.user);
-          } else {
-            console.log("User not authenticated:", data.message);
-            setUser(null);
-          }
+        const response = await fetch("/api/me")
+        if (response.ok) {
+          const data = await response.json()
+          setUser(data.user)
         } else {
-          console.log(`Failed to fetch user: ${res.status} ${res.statusText}`);
-
-          try {
-            const errorData = await res.json();
-            console.log("Error response:", errorData);
-          } catch (jsonError) {
-            console.log("Could not parse error response as JSON");
-          }
-
-          setUser(null);
+          setUser(null)
         }
       } catch (error) {
-        console.error('Error fetching user:', error);
-        setUser(null);
+        console.error("Error fetching user:", error)
+        setUser(null)
       } finally {
-        setIsLoading(false);
+        setLoading(false)
       }
     }
 
-    fetchUser();
-  }, [pathname]);
+    fetchUser()
+  }, [])
 
   const handleLogout = async () => {
     try {
@@ -91,9 +64,9 @@ export function Navigation() {
   }
 
   const shortenAddress = (address: string | null) => {
-    if (!address) return "";
-    return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
-  };
+    if (!address) return ""
+    return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`
+  }
 
   const navigation = [
     { name: "Home", href: "/" },
@@ -104,6 +77,8 @@ export function Navigation() {
     { name: "Learn", href: "/learn" },
     { name: "About", href: "/about" },
   ]
+
+  const isActive = (path: string) => pathname === path
 
   return (
     <header className="border-b border-[#2A2A2A] bg-[#121212]">
@@ -204,7 +179,7 @@ export function Navigation() {
               )}
 
               {/* Login/Register buttons (when not logged in) */}
-              {!user && !isLoading && (
+              {!user && !loading && (
                 <div className="flex space-x-2">
                   <Button asChild variant="ghost" className="text-gray-300 hover:text-white">
                     <Link href="/login">Login</Link>
@@ -335,7 +310,7 @@ export function Navigation() {
               )}
 
               {/* Login/Register buttons on mobile */}
-              {!user && !isLoading && (
+              {!user && !loading && (
                 <div className="mt-2 space-y-2">
                   <Link
                     href="/login"

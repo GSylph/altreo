@@ -7,7 +7,7 @@ import User from "@/lib/models/User";
 export async function GET(request: NextRequest) {
     try {
         // Get the session token from cookies
-        const allCookies = cookies();
+        const allCookies = await cookies();
         console.log("[/api/me] All cookies:", Array.from(allCookies.getAll()).map(c => c.name));
         const token = allCookies.get("next-auth.session-token")?.value;
 
@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
                 // Handle token from authorization header if needed
             }
             return NextResponse.json(
-                { authenticated: false, message: "Not authenticated" },
+                { authenticated: false, message: "No session token found" },
                 { status: 401 }
             );
         }
@@ -102,8 +102,8 @@ export async function GET(request: NextRequest) {
     } catch (error) {
         console.error("[/api/me] Authentication error:", error);
         return NextResponse.json(
-            { authenticated: false, message: "Authentication failed" },
-            { status: 401 }
+            { authenticated: false, message: "Internal server error" },
+            { status: 500 }
         );
     }
 } 
